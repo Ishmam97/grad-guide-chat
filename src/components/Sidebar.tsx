@@ -3,13 +3,15 @@ import React from 'react';
 import { GraduationCap, BarChart3 } from 'lucide-react';
 import QueryReportForm from './QueryReportForm';
 import NotesSection from './NotesSection';
+import ApiKeyConfig from './ApiKeyConfig';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SidebarProps {
   onReportSubmit: (question: string, comment: string) => void;
+  onApiKeyChange: (apiKey: string) => void;
 }
 
-const Sidebar = ({ onReportSubmit }: SidebarProps) => {
+const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
   return (
     <div className="w-80 bg-slate-50 border-r h-full flex flex-col">
       <div className="p-4 border-b bg-blue-900 text-white">
@@ -22,6 +24,7 @@ const Sidebar = ({ onReportSubmit }: SidebarProps) => {
 
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-6">
+          <ApiKeyConfig onApiKeyChange={onApiKeyChange} />
           <QueryReportForm onReportSubmit={onReportSubmit} />
           <NotesSection />
           

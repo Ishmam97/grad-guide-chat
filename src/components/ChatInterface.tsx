@@ -1,22 +1,26 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Trash2 } from 'lucide-react';
+import { Send, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { queryBackend, submitFeedback } from '@/services/chatbotApi';
 
 interface Message {
   id: string;
   text: string;
   isUser: boolean;
   timestamp: Date;
+  retrievedDocs?: any[];
+  modelUsed?: string;
 }
 
 interface ChatInterfaceProps {
   onQuestionSubmit: (question: string) => void;
+  apiKey: string;
 }
 
-const ChatInterface = ({ onQuestionSubmit }: ChatInterfaceProps) => {
+const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -42,18 +46,36 @@ const ChatInterface = ({ onQuestionSubmit }: ChatInterfaceProps) => {
     scrollToBottom();
   }, [messages]);
 
-  const simulateChatbotResponse = (question: string): string => {
-    const responses = [
-      `Based on UALR graduate procedures, here's what I found regarding "${question.toLowerCase()}": This typically involves submitting the required forms to your graduate coordinator within the specified deadline. Please check with your department for specific requirements.`,
-      `For questions about "${question.toLowerCase()}", I recommend reviewing the graduate handbook section 4.2. The process usually requires approval from your advisory committee and the graduate school.`,
-      `Regarding "${question.toLowerCase()}", this procedure follows standard UALR graduate policies. You'll need to complete the necessary paperwork and obtain required signatures before the deadline.`
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
+  const handleFeedback = async (messageId: string, feedbackType: 'positive' | 'negative') => {
+    const message = messages.find(m => m.id === messageId);
+    const userMessage = messages.find(m => m.isUser && messages.indexOf(m) === messages.findIndex(msg => msg.id === messageId) - 1);
+    
+    if (!message || !userMessage) return;
+
+    try {
+      await submitFeedback({
+        timestamp: new Date().toISOString(),
+        query: userMessage.text,
+        response: message.text,
+        feedback_type: feedbackType,
+        model_used: message.modelUsed || 'gemini-1.5-flash-latest',
+        retrieved_docs: message.retrievedDocs || [],
+        source_message_id: messageId
+      });
+      console.log(`Feedback submitted: ${feedbackType} for message ${messageId}`);
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
+    
+    if (!apiKey) {
+      alert('Please configure your Gemini API key in the sidebar first.');
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -66,17 +88,36 @@ const ChatInterface = ({ onQuestionSubmit }: ChatInterfaceProps) => {
     setIsLoading(true);
     onQuestionSubmit(inputValue);
 
-    // Simulate API call delay
-    setTimeout(() => {
+    try {
+      const response = await queryBackend({
+        query: inputValue,
+        api_key: apiKey,
+        k: 3,
+        model: 'gemini-1.5-flash-latest'
+      });
+
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: simulateChatbotResponse(inputValue),
+        text: response.response,
+        isUser: false,
+        timestamp: new Date(),
+        retrievedDocs: response.retrieved_docs,
+        modelUsed: response.model_used
+      };
+      
+      setMessages(prev => [...prev, botResponse]);
+    } catch (error) {
+      console.error('Query failed:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Sorry, I encountered an error while processing your question. Please check your API key and try again.',
         isUser: false,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, botResponse]);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
 
     setInputValue('');
   };
@@ -122,11 +163,33 @@ const ChatInterface = ({ onQuestionSubmit }: ChatInterfaceProps) => {
                 }`}
               >
                 <p className="text-sm">{message.text}</p>
-                <span className={`text-xs mt-1 block ${
-                  message.isUser ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+                <div className="flex items-center justify-between mt-2">
+                  <span className={`text-xs ${
+                    message.isUser ? 'text-blue-100' : 'text-gray-500'
+                  }`}>
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {!message.isUser && message.id !== '1' && (
+                    <div className="flex space-x-1 ml-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 hover:bg-green-100"
+                        onClick={() => handleFeedback(message.id, 'positive')}
+                      >
+                        <ThumbsUp className="w-3 h-3 text-green-600" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 hover:bg-red-100"
+                        onClick={() => handleFeedback(message.id, 'negative')}
+                      >
+                        <ThumbsDown className="w-3 h-3 text-red-600" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
