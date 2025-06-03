@@ -10,7 +10,7 @@ import LoadingIndicator from './chat/LoadingIndicator';
 
 interface Message {
   id: string;
-  text: string;
+  text: string | any; // Allow for API response objects
   isUser: boolean;
   timestamp: Date;
   retrievedDocs?: any[];
@@ -134,9 +134,13 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
         model: 'gemini-1.5-flash-latest'
       });
 
+      console.log('API Response:', response);
+      console.log('Response type:', typeof response.response);
+      console.log('Response content:', response.response);
+
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.response,
+        text: response.response, // This might be an object
         isUser: false,
         timestamp: new Date(),
         retrievedDocs: response.retrieved_docs,

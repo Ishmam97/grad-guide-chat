@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 interface Message {
   id: string;
-  text: string;
+  text: string | any; // Allow for API response objects
   isUser: boolean;
   timestamp: Date;
   retrievedDocs?: any[];
@@ -18,6 +18,30 @@ interface ChatMessageProps {
 }
 
 const ChatMessage = ({ message, onFeedback }: ChatMessageProps) => {
+  // Extract text content from API response object if needed
+  const getMessageText = (text: string | any): string => {
+    if (typeof text === 'string') {
+      return text;
+    }
+    
+    // Handle API response object structure
+    if (text && typeof text === 'object') {
+      // Try to extract content from common API response formats
+      if (text.content) {
+        return typeof text.content === 'string' ? text.content : JSON.stringify(text.content);
+      }
+      if (text.text) {
+        return typeof text.text === 'string' ? text.text : JSON.stringify(text.text);
+      }
+      // Fallback to stringifying the object
+      return JSON.stringify(text);
+    }
+    
+    return String(text || '');
+  };
+
+  const displayText = getMessageText(message.text);
+
   return (
     <div className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -28,7 +52,7 @@ const ChatMessage = ({ message, onFeedback }: ChatMessageProps) => {
         }`}
         style={message.isUser ? { backgroundColor: '#4c1a27' } : {}}
       >
-        <p className="text-sm">{message.text}</p>
+        <p className="text-sm">{displayText}</p>
         <div className="flex items-center justify-between mt-2">
           <span className={`text-xs ${
             message.isUser ? 'text-pink-100' : 'text-gray-500'
