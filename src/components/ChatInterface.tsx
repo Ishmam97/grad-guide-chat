@@ -1,16 +1,17 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { queryBackend, submitFeedback } from '@/services/chatbotApi';
-import FeedbackModal from './FeedbackModal';
 import ChatHeader from './chat/ChatHeader';
 import ChatMessage from './chat/ChatMessage';
 import ChatInput from './chat/ChatInput';
 import LoadingIndicator from './chat/LoadingIndicator';
+import { queryBackend } from '@/services/chatbotApi';
+import { useChat } from '@/hooks/useChat';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   id: string;
-  text: string | any; // Allow for API response objects
+  text: string | any;
   isUser: boolean;
   timestamp: Date;
   retrievedDocs?: any[];
@@ -18,39 +19,28 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-  onQuestionSubmit: (question: string) => void;
   apiKey: string;
 }
 
-const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
+const ChatInterface = ({ apiKey }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Hello! I\'m here to help you with graduate program procedures at UALR. What would you like to know?',
+      text: 'Hello! I\'m here to help answer questions about UALR graduate procedures. What would you like to know?',
       isUser: false,
-      timestamp: new Date()
-    }
+      timestamp: new Date(),
+    },
   ]);
-  const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [feedbackModal, setFeedbackModal] = useState<{
-    isOpen: boolean;
-    messageId: string;
-    feedbackType: 'positive' | 'negative';
-    userQuery: string;
-    botResponse: string;
-    retrievedDocs?: any[];
-    modelUsed?: string;
-  }>({
-    isOpen: false,
-    messageId: '',
-    feedbackType: 'positive',
-    userQuery: '',
-    botResponse: '',
-    retrievedDocs: [],
-    modelUsed: ''
-  });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  
+  const { 
+    currentConversation, 
+    createNewConversation, 
+    addMessage: addDbMessage, 
+    submitFeedback 
+  } = useChat();
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -65,120 +55,132 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
     scrollToBottom();
   }, [messages]);
 
-  const handleFeedback = async (messageId: string, feedbackType: 'positive' | 'negative') => {
-    const message = messages.find(m => m.id === messageId);
-    const userMessage = messages.find(m => m.isUser && messages.indexOf(m) === messages.findIndex(msg => msg.id === messageId) - 1);
-    
-    if (!message || !userMessage) return;
-
-    setFeedbackModal({
-      isOpen: true,
-      messageId,
-      feedbackType,
-      userQuery: userMessage.text,
-      botResponse: message.text,
-      retrievedDocs: message.retrievedDocs || [],
-      modelUsed: message.modelUsed || 'gemini-1.5-flash-latest'
-    });
-  };
-
-  const handleFeedbackSubmit = async (comment: string, correctedQuestion?: string, correctAnswer?: string) => {
-    try {
-      const feedbackData = {
-        timestamp: new Date().toISOString(),
-        query: feedbackModal.userQuery,
-        response: feedbackModal.botResponse,
-        feedback_type: feedbackModal.feedbackType === 'positive' ? 'thumbs_up' : 'thumbs_down',
-        thumbs_up_reason: feedbackModal.feedbackType === 'positive' ? comment : undefined,
-        thumbs_down_reason: feedbackModal.feedbackType === 'negative' ? comment : undefined,
-        corrected_question: correctedQuestion,
-        correct_answer: correctAnswer,
-        model_used: feedbackModal.modelUsed,
-        retrieved_docs: feedbackModal.retrievedDocs,
-        source_message_id: feedbackModal.messageId
-      };
-
-      await submitFeedback(feedbackData);
-      console.log(`Feedback submitted: ${feedbackModal.feedbackType} for message ${feedbackModal.messageId}`);
-      
-      setFeedbackModal(prev => ({ ...prev, isOpen: false }));
-    } catch (error) {
-      console.error('Failed to submit feedback:', error);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!inputValue.trim()) return;
-    
-    if (!apiKey) {
-      alert('Please configure your Gemini API key in the sidebar first.');
+  const handleSendMessage = async (message: string) => {
+    if (!message.trim() || !apiKey) {
+      if (!apiKey) {
+        toast({
+          title: "API Key Required",
+          description: "Please configure your Gemini API key in the sidebar.",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputValue,
+      text: message,
       isUser: true,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
-    onQuestionSubmit(inputValue);
 
     try {
+      // Create conversation if this is the first message
+      let conversationId = currentConversation?.id;
+      if (!conversationId && messages.length === 1) {
+        const newConversation = await createNewConversation(message);
+        conversationId = newConversation?.id;
+      }
+
+      // Save user message to database
+      if (conversationId) {
+        await addDbMessage(message, true, conversationId);
+      }
+
       const response = await queryBackend({
-        query: inputValue,
+        query: message,
         api_key: apiKey,
         k: 3,
         model: 'gemini-1.5-flash-latest'
       });
 
       console.log('API Response:', response);
-      console.log('Response type:', typeof response.response);
-      console.log('Response content:', response.response);
 
-      const botResponse: Message = {
+      const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.response, // This might be an object
+        text: response.response,
         isUser: false,
         timestamp: new Date(),
         retrievedDocs: response.retrieved_docs,
-        modelUsed: response.model_used
+        modelUsed: response.model_used,
       };
-      
-      setMessages(prev => [...prev, botResponse]);
+
+      setMessages(prev => [...prev, botMessage]);
+
+      // Save bot message to database
+      if (conversationId) {
+        await addDbMessage(response.response, false, conversationId, {
+          model_used: response.model_used,
+          retrieved_docs: response.retrieved_docs,
+        });
+      }
+
     } catch (error) {
-      console.error('Query failed:', error);
+      console.error('Error sending message:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Sorry, I encountered an error while processing your question. Please check your API key and try again.',
+        text: 'Sorry, I encountered an error processing your request. Please try again.',
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
+      
+      toast({
+        title: "Error",
+        description: "Failed to get response. Please check your API key and try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-
-    setInputValue('');
   };
 
-  const clearConversation = () => {
-    setMessages([{
-      id: '1',
-      text: 'Hello! I\'m here to help you with graduate program procedures at UALR. What would you like to know?',
-      isUser: false,
-      timestamp: new Date()
-    }]);
+  const handleFeedback = async (messageId: string, feedbackType: 'positive' | 'negative') => {
+    try {
+      const message = messages.find(m => m.id === messageId);
+      if (!message) return;
+
+      await submitFeedback(messageId, feedbackType === 'positive' ? 'thumbs_up' : 'thumbs_down', {
+        user_query: messages[messages.findIndex(m => m.id === messageId) - 1]?.text || '',
+        bot_response: message.text,
+        model_used: message.modelUsed,
+        retrieved_docs: message.retrievedDocs,
+      });
+
+      toast({
+        title: "Feedback submitted",
+        description: "Thank you for your feedback!",
+      });
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([
+      {
+        id: '1',
+        text: 'Hello! I\'m here to help answer questions about UALR graduate procedures. What would you like to know?',
+        isUser: false,
+        timestamp: new Date(),
+      },
+    ]);
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <ChatHeader onClearChat={clearConversation} />
-
+    <div className="flex flex-col h-full">
+      <ChatHeader onClearChat={clearChat} />
+      
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
-        <div className="space-y-4">
+        <div className="max-w-4xl mx-auto space-y-4">
           {messages.map((message) => (
             <ChatMessage
               key={message.id}
@@ -190,19 +192,7 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
         </div>
       </ScrollArea>
 
-      <ChatInput
-        value={inputValue}
-        onChange={setInputValue}
-        onSubmit={handleSubmit}
-        isLoading={isLoading}
-      />
-
-      <FeedbackModal
-        isOpen={feedbackModal.isOpen}
-        onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
-        onSubmit={handleFeedbackSubmit}
-        feedbackType={feedbackModal.feedbackType}
-      />
+      <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
     </div>
   );
 };
