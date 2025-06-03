@@ -17,10 +17,16 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
     <div className="w-80 bg-slate-50 border-r h-full flex flex-col">
       <div className="p-4 border-b text-white" style={{ backgroundColor: '#4c1a27' }}>
         <div className="flex items-center">
-          <GraduationCap className="w-6 h-6 mr-2" />
-          <h1 className="text-lg font-bold">UALR Graduate Q&A</h1>
+          <img 
+            src="/placeholder.svg" 
+            alt="UALR Logo" 
+            className="w-8 h-8 mr-3"
+          />
+          <div>
+            <h1 className="text-lg font-bold">UALR Graduate Q&A</h1>
+            <p className="text-pink-100 text-sm">Coordinator Dashboard</p>
+          </div>
         </div>
-        <p className="text-blue-100 text-sm mt-1">Coordinator Dashboard</p>
       </div>
 
       <ScrollArea className="flex-1 p-4">
