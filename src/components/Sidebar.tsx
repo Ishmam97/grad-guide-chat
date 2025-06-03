@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { GraduationCap, BarChart3 } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import QueryReportForm from './QueryReportForm';
 import NotesSection from './NotesSection';
 import ApiKeyConfig from './ApiKeyConfig';
+import QuickStats from './sidebar/QuickStats';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SidebarProps {
@@ -27,27 +28,7 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
           <ApiKeyConfig onApiKeyChange={onApiKeyChange} />
           <QueryReportForm onReportSubmit={onReportSubmit} />
           <NotesSection />
-          
-          <div className="bg-white p-4 rounded-lg border shadow-sm">
-            <div className="flex items-center mb-3">
-              <BarChart3 className="w-5 h-5 mr-2" style={{ color: '#245d7a' }} />
-              <h3 className="font-semibold text-gray-800">Quick Stats</h3>
-            </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Questions Today:</span>
-                <span className="font-medium">12</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Reports Submitted:</span>
-                <span className="font-medium">3</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Notes Created:</span>
-                <span className="font-medium">8</span>
-              </div>
-            </div>
-          </div>
+          <QuickStats />
         </div>
       </ScrollArea>
     </div>

@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { queryBackend, submitFeedback } from '@/services/chatbotApi';
 import FeedbackModal from './FeedbackModal';
+import ChatHeader from './chat/ChatHeader';
+import ChatMessage from './chat/ChatMessage';
+import ChatInput from './chat/ChatInput';
+import LoadingIndicator from './chat/LoadingIndicator';
 
 interface Message {
   id: string;
@@ -106,8 +107,7 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!inputValue.trim()) return;
     
     if (!apiKey) {
@@ -171,100 +171,27 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className="p-4 border-b" style={{ backgroundColor: '#245d7a' }}>
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-white">UALR Graduate Procedures Assistant</h2>
-          <Button
-            onClick={clearConversation}
-            variant="outline"
-            size="sm"
-            className="text-white border-white hover:bg-white hover:text-gray-800"
-          >
-            <Trash2 className="w-4 h-4 mr-1" />
-            Clear Chat
-          </Button>
-        </div>
-      </div>
+      <ChatHeader onClearChat={clearConversation} />
 
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
         <div className="space-y-4">
           {messages.map((message) => (
-            <div
+            <ChatMessage
               key={message.id}
-              className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] p-3 rounded-lg ${
-                  message.isUser
-                    ? 'text-white'
-                    : 'bg-white text-gray-800 border'
-                }`}
-                style={message.isUser ? { backgroundColor: '#4c1a27' } : {}}
-              >
-                <p className="text-sm">{message.text}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className={`text-xs ${
-                    message.isUser ? 'text-pink-100' : 'text-gray-500'
-                  }`}>
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  {!message.isUser && message.id !== '1' && (
-                    <div className="flex space-x-1 ml-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0 hover:bg-green-100"
-                        onClick={() => handleFeedback(message.id, 'positive')}
-                      >
-                        <ThumbsUp className="w-3 h-3 text-green-600" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0 hover:bg-red-100"
-                        onClick={() => handleFeedback(message.id, 'negative')}
-                      >
-                        <ThumbsDown className="w-3 h-3 text-red-600" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+              message={message}
+              onFeedback={handleFeedback}
+            />
           ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-white border p-3 rounded-lg max-w-[80%]">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
+          {isLoading && <LoadingIndicator />}
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t bg-gray-50">
-        <form onSubmit={handleSubmit} className="flex space-x-2">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask about graduate procedures..."
-            className="flex-1"
-            disabled={isLoading}
-          />
-          <Button 
-            type="submit" 
-            disabled={isLoading || !inputValue.trim()}
-            className="text-white hover:opacity-90"
-            style={{ backgroundColor: '#245d7a' }}
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
-      </div>
+      <ChatInput
+        value={inputValue}
+        onChange={setInputValue}
+        onSubmit={handleSubmit}
+        isLoading={isLoading}
+      />
 
       <FeedbackModal
         isOpen={feedbackModal.isOpen}
