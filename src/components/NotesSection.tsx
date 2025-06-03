@@ -88,7 +88,8 @@ const NotesSection = () => {
           <Button
             onClick={handleAddNote}
             disabled={!newNote.trim()}
-            className="mt-2 w-full bg-green-600 hover:bg-green-700"
+            className="mt-2 w-full text-white hover:opacity-90"
+            style={{ backgroundColor: '#245d7a' }}
           >
             <Plus className="w-4 h-4 mr-2" />
             Save Note
@@ -113,7 +114,8 @@ const NotesSection = () => {
                         <Button
                           onClick={() => handleSaveEdit(note.id)}
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700"
+                          className="text-white hover:opacity-90"
+                          style={{ backgroundColor: '#245d7a' }}
                         >
                           <Save className="w-3 h-3" />
                         </Button>

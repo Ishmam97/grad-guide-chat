@@ -28,7 +28,7 @@ const ApiKeyConfig = ({ onApiKeyChange }: ApiKeyConfigProps) => {
   return (
     <div className="bg-white p-4 rounded-lg border shadow-sm">
       <div className="flex items-center mb-3">
-        <Key className="w-5 h-5 text-blue-600 mr-2" />
+        <Key className="w-5 h-5 mr-2" style={{ color: '#245d7a' }} />
         <h3 className="font-semibold text-gray-800">Gemini API Configuration</h3>
       </div>
       
@@ -51,7 +51,8 @@ const ApiKeyConfig = ({ onApiKeyChange }: ApiKeyConfigProps) => {
           <button
             type="button"
             onClick={() => setIsVisible(!isVisible)}
-            className="text-xs text-blue-600 hover:text-blue-800"
+            className="text-xs hover:underline"
+            style={{ color: '#245d7a' }}
           >
             {isVisible ? 'Hide' : 'Show'} key
           </button>
@@ -60,7 +61,8 @@ const ApiKeyConfig = ({ onApiKeyChange }: ApiKeyConfigProps) => {
             onClick={handleSave}
             size="sm"
             disabled={!apiKey.trim()}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="text-white hover:opacity-90"
+            style={{ backgroundColor: '#245d7a' }}
           >
             <Save className="w-4 h-4 mr-1" />
             Save

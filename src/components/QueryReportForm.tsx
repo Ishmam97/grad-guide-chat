@@ -74,7 +74,8 @@ const QueryReportForm = ({ onReportSubmit }: QueryReportFormProps) => {
         <Button
           type="submit"
           disabled={!question.trim() || isSubmitting}
-          className="w-full bg-orange-600 hover:bg-orange-700"
+          className="w-full text-white hover:opacity-90"
+          style={{ backgroundColor: '#6e2639' }}
         >
           <Send className="w-4 h-4 mr-2" />
           {isSubmitting ? 'Submitting...' : 'Submit Report'}

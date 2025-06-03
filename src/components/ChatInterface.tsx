@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { queryBackend, submitFeedback } from '@/services/chatbotApi';
+import FeedbackModal from './FeedbackModal';
 
 interface Message {
   id: string;
@@ -31,6 +32,23 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    isOpen: boolean;
+    messageId: string;
+    feedbackType: 'positive' | 'negative';
+    userQuery: string;
+    botResponse: string;
+    retrievedDocs?: any[];
+    modelUsed?: string;
+  }>({
+    isOpen: false,
+    messageId: '',
+    feedbackType: 'positive',
+    userQuery: '',
+    botResponse: '',
+    retrievedDocs: [],
+    modelUsed: ''
+  });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -52,17 +70,37 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
     
     if (!message || !userMessage) return;
 
+    setFeedbackModal({
+      isOpen: true,
+      messageId,
+      feedbackType,
+      userQuery: userMessage.text,
+      botResponse: message.text,
+      retrievedDocs: message.retrievedDocs || [],
+      modelUsed: message.modelUsed || 'gemini-1.5-flash-latest'
+    });
+  };
+
+  const handleFeedbackSubmit = async (comment: string, correctedQuestion?: string, correctAnswer?: string) => {
     try {
-      await submitFeedback({
+      const feedbackData = {
         timestamp: new Date().toISOString(),
-        query: userMessage.text,
-        response: message.text,
-        feedback_type: feedbackType,
-        model_used: message.modelUsed || 'gemini-1.5-flash-latest',
-        retrieved_docs: message.retrievedDocs || [],
-        source_message_id: messageId
-      });
-      console.log(`Feedback submitted: ${feedbackType} for message ${messageId}`);
+        query: feedbackModal.userQuery,
+        response: feedbackModal.botResponse,
+        feedback_type: feedbackModal.feedbackType === 'positive' ? 'thumbs_up' : 'thumbs_down',
+        thumbs_up_reason: feedbackModal.feedbackType === 'positive' ? comment : undefined,
+        thumbs_down_reason: feedbackModal.feedbackType === 'negative' ? comment : undefined,
+        corrected_question: correctedQuestion,
+        correct_answer: correctAnswer,
+        model_used: feedbackModal.modelUsed,
+        retrieved_docs: feedbackModal.retrievedDocs,
+        source_message_id: feedbackModal.messageId
+      };
+
+      await submitFeedback(feedbackData);
+      console.log(`Feedback submitted: ${feedbackModal.feedbackType} for message ${feedbackModal.messageId}`);
+      
+      setFeedbackModal(prev => ({ ...prev, isOpen: false }));
     } catch (error) {
       console.error('Failed to submit feedback:', error);
     }
@@ -133,14 +171,14 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className="p-4 border-b bg-blue-50">
+      <div className="p-4 border-b" style={{ backgroundColor: '#245d7a' }}>
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-blue-900">UALR Graduate Procedures Assistant</h2>
+          <h2 className="text-xl font-semibold text-white">UALR Graduate Procedures Assistant</h2>
           <Button
             onClick={clearConversation}
             variant="outline"
             size="sm"
-            className="text-gray-600 hover:text-red-600"
+            className="text-white border-white hover:bg-white hover:text-gray-800"
           >
             <Trash2 className="w-4 h-4 mr-1" />
             Clear Chat
@@ -158,14 +196,15 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
               <div
                 className={`max-w-[80%] p-3 rounded-lg ${
                   message.isUser
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-800 border'
+                    ? 'text-white'
+                    : 'bg-white text-gray-800 border'
                 }`}
+                style={message.isUser ? { backgroundColor: '#4c1a27' } : {}}
               >
                 <p className="text-sm">{message.text}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className={`text-xs ${
-                    message.isUser ? 'text-blue-100' : 'text-gray-500'
+                    message.isUser ? 'text-pink-100' : 'text-gray-500'
                   }`}>
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
@@ -195,7 +234,7 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 border p-3 rounded-lg max-w-[80%]">
+              <div className="bg-white border p-3 rounded-lg max-w-[80%]">
                 <div className="flex space-x-1">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -216,11 +255,23 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
             className="flex-1"
             disabled={isLoading}
           />
-          <Button type="submit" disabled={isLoading || !inputValue.trim()}>
+          <Button 
+            type="submit" 
+            disabled={isLoading || !inputValue.trim()}
+            className="text-white hover:opacity-90"
+            style={{ backgroundColor: '#245d7a' }}
+          >
             <Send className="w-4 h-4" />
           </Button>
         </form>
       </div>
+
+      <FeedbackModal
+        isOpen={feedbackModal.isOpen}
+        onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+        onSubmit={handleFeedbackSubmit}
+        feedbackType={feedbackModal.feedbackType}
+      />
     </div>
   );
 };

@@ -14,7 +14,7 @@ interface SidebarProps {
 const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
   return (
     <div className="w-80 bg-slate-50 border-r h-full flex flex-col">
-      <div className="p-4 border-b bg-blue-900 text-white">
+      <div className="p-4 border-b text-white" style={{ backgroundColor: '#4c1a27' }}>
         <div className="flex items-center">
           <GraduationCap className="w-6 h-6 mr-2" />
           <h1 className="text-lg font-bold">UALR Graduate Q&A</h1>
@@ -30,7 +30,7 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
           
           <div className="bg-white p-4 rounded-lg border shadow-sm">
             <div className="flex items-center mb-3">
-              <BarChart3 className="w-5 h-5 text-blue-600 mr-2" />
+              <BarChart3 className="w-5 h-5 mr-2" style={{ color: '#245d7a' }} />
               <h3 className="font-semibold text-gray-800">Quick Stats</h3>
             </div>
             <div className="space-y-2 text-sm">
