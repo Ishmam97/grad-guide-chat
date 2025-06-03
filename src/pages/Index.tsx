@@ -2,31 +2,20 @@
 import React, { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import ChatInterface from '@/components/ChatInterface';
-import { reportService } from '@/services/reportService';
-import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const [reportedQuestions, setReportedQuestions] = useState<Array<{question: string, comment: string}>>([]);
   const [apiKey, setApiKey] = useState(() => {
     return localStorage.getItem('gemini_api_key') || '';
   });
-  const { toast } = useToast();
 
-  const handleReportSubmit = async (question: string, comment: string) => {
-    try {
-      await reportService.submitReport(question, comment);
-      toast({
-        title: "Report submitted",
-        description: "Thank you for reporting this question. We'll review it shortly.",
-      });
-      console.log('Question reported:', { question, comment });
-    } catch (error) {
-      console.error('Error submitting report:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit report. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleReportSubmit = (question: string, comment: string) => {
+    setReportedQuestions(prev => [...prev, { question, comment }]);
+    console.log('Question reported:', { question, comment });
+  };
+
+  const handleQuestionSubmit = (question: string) => {
+    console.log('Question submitted to chatbot:', question);
   };
 
   const handleApiKeyChange = (newApiKey: string) => {
@@ -41,7 +30,10 @@ const Index = () => {
         onApiKeyChange={handleApiKeyChange}
       />
       <div className="flex-1 flex flex-col">
-        <ChatInterface apiKey={apiKey} />
+        <ChatInterface 
+          onQuestionSubmit={handleQuestionSubmit}
+          apiKey={apiKey}
+        />
       </div>
     </div>
   );
