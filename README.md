@@ -1,18 +1,10 @@
-# Welcome to your Lovable project
+# UALR Graduate chatbot React UI
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/9ed8188b-3f56-479d-aa48-1c91dcafb386
 
 ## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/9ed8188b-3f56-479d-aa48-1c91dcafb386) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
