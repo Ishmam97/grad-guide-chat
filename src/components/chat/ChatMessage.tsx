@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -58,7 +57,6 @@ const ChatMessage = ({ message, onFeedback }: ChatMessageProps) => {
             <p>{displayText}</p>
           ) : (
             <ReactMarkdown
-              className={`${message.isUser ? 'prose-invert' : ''}`}
               components={{
                 // Customize markdown components for better styling
                 p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
