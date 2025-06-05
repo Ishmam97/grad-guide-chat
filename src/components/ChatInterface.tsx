@@ -1,7 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { queryBackend, submitFeedback } from '@/services/chatbotApi';
+import { queryBackend } from '@/services/chatbotApi';
+import { chatStorage, type StoredMessage } from '@/services/chatStorage';
+import { useAuth } from '@/hooks/useAuth';
 import FeedbackModal from './FeedbackModal';
 import ChatHeader from './chat/ChatHeader';
 import ChatMessage from './chat/ChatMessage';
@@ -10,7 +12,7 @@ import LoadingIndicator from './chat/LoadingIndicator';
 
 interface Message {
   id: string;
-  text: string | any; // Allow for API response objects
+  text: string | any;
   isUser: boolean;
   timestamp: Date;
   retrievedDocs?: any[];
@@ -23,6 +25,7 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -52,6 +55,32 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
   });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Load conversation messages on component mount
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!user) return;
+      
+      try {
+        const storedMessages = await chatStorage.loadConversationMessages();
+        if (storedMessages.length > 0) {
+          const formattedMessages: Message[] = storedMessages.map(msg => ({
+            id: msg.id,
+            text: msg.content,
+            isUser: msg.isUser,
+            timestamp: msg.timestamp,
+            retrievedDocs: msg.retrievedDocs,
+            modelUsed: msg.modelUsed,
+          }));
+          setMessages(formattedMessages);
+        }
+      } catch (error) {
+        console.error('Failed to load conversation messages:', error);
+      }
+    };
+
+    loadMessages();
+  }, [user]);
+
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -75,32 +104,31 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
       isOpen: true,
       messageId,
       feedbackType,
-      userQuery: userMessage.text,
-      botResponse: message.text,
+      userQuery: typeof userMessage.text === 'string' ? userMessage.text : JSON.stringify(userMessage.text),
+      botResponse: typeof message.text === 'string' ? message.text : JSON.stringify(message.text),
       retrievedDocs: message.retrievedDocs || [],
       modelUsed: message.modelUsed || 'gemini-1.5-flash-latest'
     });
   };
 
   const handleFeedbackSubmit = async (comment: string, correctedQuestion?: string, correctAnswer?: string) => {
-    try {
-      const feedbackData = {
-        timestamp: new Date().toISOString(),
-        query: feedbackModal.userQuery,
-        response: feedbackModal.botResponse,
-        feedback_type: feedbackModal.feedbackType === 'positive' ? 'thumbs_up' : 'thumbs_down',
-        thumbs_up_reason: feedbackModal.feedbackType === 'positive' ? comment : undefined,
-        thumbs_down_reason: feedbackModal.feedbackType === 'negative' ? comment : undefined,
-        corrected_question: correctedQuestion,
-        correct_answer: correctAnswer,
-        model_used: feedbackModal.modelUsed,
-        retrieved_docs: feedbackModal.retrievedDocs,
-        source_message_id: feedbackModal.messageId
-      };
+    if (!user) return;
 
-      await submitFeedback(feedbackData);
+    try {
+      await chatStorage.storeFeedback(
+        feedbackModal.messageId,
+        feedbackModal.feedbackType === 'positive' ? 'thumbs_up' : 'thumbs_down',
+        feedbackModal.userQuery,
+        feedbackModal.botResponse,
+        feedbackModal.feedbackType === 'positive' ? comment : undefined,
+        feedbackModal.feedbackType === 'negative' ? comment : undefined,
+        correctedQuestion,
+        correctAnswer,
+        feedbackModal.retrievedDocs,
+        feedbackModal.modelUsed
+      );
+
       console.log(`Feedback submitted: ${feedbackModal.feedbackType} for message ${feedbackModal.messageId}`);
-      
       setFeedbackModal(prev => ({ ...prev, isOpen: false }));
     } catch (error) {
       console.error('Failed to submit feedback:', error);
@@ -115,18 +143,26 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
       return;
     }
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputValue,
-      isUser: true,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
-    onQuestionSubmit(inputValue);
+    if (!user) {
+      alert('Please sign in to use the chat.');
+      return;
+    }
 
     try {
+      // Store user message
+      const userMessageId = await chatStorage.storeMessage(inputValue, true);
+      
+      const userMessage: Message = {
+        id: userMessageId,
+        text: inputValue,
+        isUser: true,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+      setIsLoading(true);
+      onQuestionSubmit(inputValue);
+
       const response = await queryBackend({
         query: inputValue,
         api_key: apiKey,
@@ -135,12 +171,18 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
       });
 
       console.log('API Response:', response);
-      console.log('Response type:', typeof response.response);
-      console.log('Response content:', response.response);
+
+      // Store bot response
+      const botMessageId = await chatStorage.storeMessage(
+        typeof response.response === 'string' ? response.response : JSON.stringify(response.response),
+        false,
+        response.retrieved_docs,
+        response.model_used
+      );
 
       const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: response.response, // This might be an object
+        id: botMessageId,
+        text: response.response,
         isUser: false,
         timestamp: new Date(),
         retrievedDocs: response.retrieved_docs,
@@ -150,13 +192,24 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
       setMessages(prev => [...prev, botResponse]);
     } catch (error) {
       console.error('Query failed:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'Sorry, I encountered an error while processing your question. Please check your API key and try again.',
-        isUser: false,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      
+      // Store error message
+      try {
+        const errorMessageId = await chatStorage.storeMessage(
+          'Sorry, I encountered an error while processing your question. Please check your API key and try again.',
+          false
+        );
+
+        const errorMessage: Message = {
+          id: errorMessageId,
+          text: 'Sorry, I encountered an error while processing your question. Please check your API key and try again.',
+          isUser: false,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      } catch (storeError) {
+        console.error('Failed to store error message:', storeError);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -164,13 +217,20 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
     setInputValue('');
   };
 
-  const clearConversation = () => {
-    setMessages([{
-      id: '1',
-      text: 'Hello! I\'m here to help you with graduate program procedures at UALR. What would you like to know?',
-      isUser: false,
-      timestamp: new Date()
-    }]);
+  const clearConversation = async () => {
+    try {
+      // Clear current conversation and start a new one
+      chatStorage.clearCurrentConversation();
+      
+      setMessages([{
+        id: '1',
+        text: 'Hello! I\'m here to help you with graduate program procedures at UALR. What would you like to know?',
+        isUser: false,
+        timestamp: new Date()
+      }]);
+    } catch (error) {
+      console.error('Failed to clear conversation:', error);
+    }
   };
 
   return (
