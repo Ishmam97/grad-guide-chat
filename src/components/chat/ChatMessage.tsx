@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,13 @@ const ChatMessage = ({ message, onFeedback }: ChatMessageProps) => {
       }
       if (text.text) {
         return typeof text.text === 'string' ? text.text : JSON.stringify(text.text);
+      }
+      if (text.message) {
+        return typeof text.message === 'string' ? text.message : JSON.stringify(text.message);
+      }
+      // Handle response object with nested content
+      if (text.response && typeof text.response === 'string') {
+        return text.response;
       }
       // Fallback to stringifying the object
       return JSON.stringify(text);

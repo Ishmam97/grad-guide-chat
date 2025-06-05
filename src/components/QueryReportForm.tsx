@@ -6,33 +6,61 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface QueryReportFormProps {
   onReportSubmit: (question: string, comment: string) => void;
 }
 
 const QueryReportForm = ({ onReportSubmit }: QueryReportFormProps) => {
+  const { user } = useAuth();
   const [question, setQuestion] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim()) return;
+    if (!question.trim() || !user) return;
 
     setIsSubmitting(true);
     
-    // Simulate submission delay
-    setTimeout(() => {
-      onReportSubmit(question, comment);
+    try {
+      const { error } = await supabase
+        .from('reported_questions')
+        .insert({
+          user_id: user.id,
+          question: question.trim(),
+          comment: comment.trim() || null,
+          status: 'pending'
+        });
+
+      if (error) {
+        console.error('Error storing reported question:', error);
+        toast({
+          title: "Error",
+          description: "Failed to submit your report. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        onReportSubmit(question, comment);
+        toast({
+          title: "Report Submitted",
+          description: "Your unanswered question has been reported for review.",
+        });
+        setQuestion('');
+        setComment('');
+      }
+    } catch (error) {
+      console.error('Error submitting report:', error);
       toast({
-        title: "Report Submitted",
-        description: "Your unanswered question has been reported for review.",
+        title: "Error",
+        description: "Failed to submit your report. Please try again.",
+        variant: "destructive"
       });
-      setQuestion('');
-      setComment('');
+    } finally {
       setIsSubmitting(false);
-    }, 500);
+    }
   };
 
   return (
@@ -73,7 +101,7 @@ const QueryReportForm = ({ onReportSubmit }: QueryReportFormProps) => {
         
         <Button
           type="submit"
-          disabled={!question.trim() || isSubmitting}
+          disabled={!question.trim() || isSubmitting || !user}
           className="w-full text-white hover:opacity-90"
           style={{ backgroundColor: '#6e2639' }}
         >
