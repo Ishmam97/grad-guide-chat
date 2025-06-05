@@ -2,6 +2,7 @@
 import React from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -52,7 +53,39 @@ const ChatMessage = ({ message, onFeedback }: ChatMessageProps) => {
         }`}
         style={message.isUser ? { backgroundColor: '#4c1a27' } : {}}
       >
-        <p className="text-sm">{displayText}</p>
+        <div className="text-sm prose prose-sm max-w-none">
+          {message.isUser ? (
+            <p>{displayText}</p>
+          ) : (
+            <ReactMarkdown
+              className={`${message.isUser ? 'prose-invert' : ''}`}
+              components={{
+                // Customize markdown components for better styling
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                ul: ({ children }) => <ul className="mb-2 last:mb-0 list-disc pl-4">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-2 last:mb-0 list-decimal pl-4">{children}</ol>,
+                li: ({ children }) => <li className="mb-1">{children}</li>,
+                code: ({ children }) => (
+                  <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs font-mono">
+                    {children}
+                  </code>
+                ),
+                pre: ({ children }) => (
+                  <pre className="bg-gray-100 text-gray-800 p-2 rounded text-xs font-mono overflow-x-auto mb-2">
+                    {children}
+                  </pre>
+                ),
+                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                em: ({ children }) => <em className="italic">{children}</em>,
+                h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+              }}
+            >
+              {displayText}
+            </ReactMarkdown>
+          )}
+        </div>
         <div className="flex items-center justify-between mt-2">
           <span className={`text-xs ${
             message.isUser ? 'text-pink-100' : 'text-gray-500'
