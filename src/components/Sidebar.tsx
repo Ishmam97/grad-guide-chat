@@ -23,9 +23,16 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
 
   return (
     <div className="w-80 bg-slate-50 border-r h-full flex flex-col">
+<<<<<<< HEAD
       <div className="p-4 border-b text-white" style={{ backgroundColor: '#4c1a27' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
+=======
+      <div className="p-4 border-b text-white" style={{ backgroundColor: '#dfdfdf' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            {/* UALR Logo */}
+>>>>>>> 15f4839 (fix svgs)
             <img 
               src="/placeholder.svg" 
               alt="UALR Logo" 
