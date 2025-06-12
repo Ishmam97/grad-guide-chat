@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,8 @@ interface ChatHeaderProps {
 
 const ChatHeader = ({ onClearChat }: ChatHeaderProps) => {
   return (
-    <div className="p-4 border-b" style={{ backgroundColor: '#4c1a27' }}>
-      <div className="flex justify-between items-center">
+    <div className="p-4 border-b min-h-[105px] flex items-center" style={{ backgroundColor: '#4c1a27' }}>
+      <div className="flex justify-between items-center w-full">
         <h2 className="text-xl font-semibold text-white">UALR Graduate Procedures Assistant</h2>
         <Button
           onClick={onClearChat}

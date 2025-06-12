@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GraduationCap, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,17 +22,17 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
 
   return (
     <div className="w-80 bg-gray-600 border-r h-full flex flex-col">
-      <div className="p-4 border-b text-black bg-gray-600">
+      <div className="p-4 border-b text-black bg-white sidebar-header">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {/* UALR Logo */}
             <img 
               src="/placeholder.svg" 
               alt="UALR Logo" 
-              className="w-8 h-8 mr-3"
+              className="w-10 h-10 mr-3"
             />
             <div>
-              <h1 className="text-lg font-bold text-black">UALR Graduate Q&A</h1>
+              <h1 className="text-lg font-bold text-[#4c1a27]">UALR Graduate Q&A</h1>
               <p className="text-gray-800 text-sm">Coordinator Dashboard</p>
             </div>
           </div>
