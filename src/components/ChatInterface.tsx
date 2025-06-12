@@ -234,10 +234,10 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-screen bg-white relative">
       <ChatHeader onClearChat={clearConversation} />
 
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4" style={{ paddingBottom: '80px' }}>
         <div className="space-y-4">
           {messages.map((message) => (
             <ChatMessage
@@ -250,12 +250,14 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
         </div>
       </ScrollArea>
 
-      <ChatInput
-        value={inputValue}
-        onChange={setInputValue}
-        onSubmit={handleSubmit}
-        isLoading={isLoading}
-      />
+      <div className="fixed bottom-0 left-80 right-0 z-10">
+        <ChatInput
+          value={inputValue}
+          onChange={setInputValue}
+          onSubmit={handleSubmit}
+          isLoading={isLoading}
+        />
+      </div>
 
       <FeedbackModal
         isOpen={feedbackModal.isOpen}

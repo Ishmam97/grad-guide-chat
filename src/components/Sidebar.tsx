@@ -22,8 +22,8 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
   };
 
   return (
-    <div className="w-80 bg-slate-50 border-r h-full flex flex-col">
-      <div className="p-4 border-b text-white" style={{ backgroundColor: '#dfdfdf' }}>
+    <div className="w-80 bg-gray-600 border-r h-full flex flex-col">
+      <div className="p-4 border-b text-black bg-gray-600">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {/* UALR Logo */}
@@ -33,21 +33,21 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
               className="w-8 h-8 mr-3"
             />
             <div>
-              <h1 className="text-lg font-bold">UALR Graduate Q&A</h1>
-              <p className="text-pink-100 text-sm">Coordinator Dashboard</p>
+              <h1 className="text-lg font-bold text-black">UALR Graduate Q&A</h1>
+              <p className="text-gray-800 text-sm">Coordinator Dashboard</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleSignOut}
-            className="text-white hover:bg-white/20"
+            className="text-black hover:bg-gray-500"
           >
             <LogOut className="w-4 h-4" />
           </Button>
         </div>
         {user && (
-          <p className="text-pink-100 text-xs mt-2">
+          <p className="text-gray-800 text-xs mt-2">
             {user.email}
           </p>
         )}
