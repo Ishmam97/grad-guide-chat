@@ -21,69 +21,129 @@ const QuickStats = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  const fetchStats = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Get today's date range
+      const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+      // Fetch questions today (user messages in chat_messages)
+      const { data: questionsTodayData, error: questionsTodayError } = await supabase
+        .from('chat_messages')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_user_message', true)
+        .gte('created_at', todayStart.toISOString())
+        .lt('created_at', todayEnd.toISOString());
+
+      if (questionsTodayError) throw questionsTodayError;
+
+      // Fetch total questions (all user messages)
+      const { data: totalQuestionsData, error: totalQuestionsError } = await supabase
+        .from('chat_messages')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_user_message', true);
+
+      if (totalQuestionsError) throw totalQuestionsError;
+
+      // Fetch reports submitted
+      const { data: reportsData, error: reportsError } = await supabase
+        .from('reported_questions')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (reportsError) throw reportsError;
+
+      // Fetch notes created
+      const { data: notesData, error: notesError } = await supabase
+        .from('notes')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (notesError) throw notesError;
+
+      setStats({
+        questionsToday: questionsTodayData?.length || 0,
+        totalQuestions: totalQuestionsData?.length || 0,
+        reportsSubmitted: reportsData?.length || 0,
+        notesCreated: notesData?.length || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Get today's date range
-        const today = new Date();
-        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-
-        // Fetch questions today (user messages in chat_messages)
-        const { data: questionsTodayData, error: questionsTodayError } = await supabase
-          .from('chat_messages')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('is_user_message', true)
-          .gte('created_at', todayStart.toISOString())
-          .lt('created_at', todayEnd.toISOString());
-
-        if (questionsTodayError) throw questionsTodayError;
-
-        // Fetch total questions (all user messages)
-        const { data: totalQuestionsData, error: totalQuestionsError } = await supabase
-          .from('chat_messages')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('is_user_message', true);
-
-        if (totalQuestionsError) throw totalQuestionsError;
-
-        // Fetch reports submitted
-        const { data: reportsData, error: reportsError } = await supabase
-          .from('reported_questions')
-          .select('id')
-          .eq('user_id', user.id);
-
-        if (reportsError) throw reportsError;
-
-        // Fetch notes created
-        const { data: notesData, error: notesError } = await supabase
-          .from('notes')
-          .select('id')
-          .eq('user_id', user.id);
-
-        if (notesError) throw notesError;
-
-        setStats({
-          questionsToday: questionsTodayData?.length || 0,
-          totalQuestions: totalQuestionsData?.length || 0,
-          reportsSubmitted: reportsData?.length || 0,
-          notesCreated: notesData?.length || 0,
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStats();
+
+    // Set up real-time subscription for chat messages
+    const messagesChannel = supabase
+      .channel('chat-messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `user_id=eq.${user?.id}`
+        },
+        () => {
+          console.log('Chat message change detected, updating stats...');
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for reported questions
+    const reportsChannel = supabase
+      .channel('reported-questions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reported_questions',
+          filter: `user_id=eq.${user?.id}`
+        },
+        () => {
+          console.log('Reported question change detected, updating stats...');
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for notes
+    const notesChannel = supabase
+      .channel('notes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notes',
+          filter: `user_id=eq.${user?.id}`
+        },
+        () => {
+          console.log('Notes change detected, updating stats...');
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(reportsChannel);
+      supabase.removeChannel(notesChannel);
+    };
   }, [user]);
 
   if (loading) {
