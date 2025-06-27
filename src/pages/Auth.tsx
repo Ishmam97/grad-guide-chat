@@ -13,6 +13,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('signin');
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -21,6 +22,14 @@ const Auth = () => {
       navigate('/');
     }
   }, [user, navigate]);
+
+  // Clear form when switching tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setError(null);
+    setEmail('');
+    setPassword('');
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +73,11 @@ const Auth = () => {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>UALR Graduate Q&A</CardTitle>
+          <CardTitle>UA Little Rock Graduate Admissions Assistant</CardTitle>
           <CardDescription>Access your coordinator dashboard</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
