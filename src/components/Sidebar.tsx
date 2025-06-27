@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GraduationCap, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,8 +33,8 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
               className="w-10 h-10 mr-3"
             />
             <div>
-              <h1 className="text-lg font-bold text-[#4c1a27]">UALR Graduate Q&A</h1>
-              <p className="text-gray-800 text-sm">Coordinator Dashboard</p>
+              <h1 className="text-lg font-bold text-[#4c1a27]">UA Little Rock</h1>
+              <p className="text-gray-800 text-sm">Graduate Admissions</p>
             </div>
           </div>
           <Button
