@@ -107,7 +107,7 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
       userQuery: typeof userMessage.text === 'string' ? userMessage.text : JSON.stringify(userMessage.text),
       botResponse: typeof message.text === 'string' ? message.text : JSON.stringify(message.text),
       retrievedDocs: message.retrievedDocs || [],
-      modelUsed: message.modelUsed || 'gemini-1.5-flash-latest'
+      modelUsed: message.modelUsed || 'gemini-2.0-flash-lite'
     });
   };
 
@@ -167,7 +167,7 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
         query: inputValue,
         api_key: apiKey,
         k: 3,
-        model: 'gemini-1.5-flash-latest'
+        model: 'gemini-2.0-flash-lite'
       });
 
       console.log('API Response:', response);
