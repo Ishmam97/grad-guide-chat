@@ -25,7 +25,7 @@ interface FeedbackRequest {
   source_message_id?: string;
 }
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = 'https://ualr-chatbot-backend.onrender.com';
 
 export const queryBackend = async (queryRequest: QueryRequest): Promise<QueryResponse> => {
   try {
