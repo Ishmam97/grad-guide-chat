@@ -35,7 +35,7 @@ const Sidebar = ({ onReportSubmit, onApiKeyChange }: SidebarProps) => {
           <div className="flex items-center">
             {/* UALR Logo */}
             <img 
-              src="/placeholder.svg" 
+              src="https://ishmam97.github.io/grad-guide-chat/placeholder.svg" 
               alt="UALR Logo" 
               className="w-10 h-10 mr-3"
             />
