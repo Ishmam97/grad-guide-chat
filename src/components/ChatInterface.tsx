@@ -172,9 +172,14 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
 
       console.log('API Response:', response);
 
+      // Extract content from response object
+      const botMessageContent = typeof response.response === 'string' 
+        ? response.response 
+        : (response.response as any)?.content || JSON.stringify(response.response);
+
       // Store bot response
       const botMessageId = await chatStorage.storeMessage(
-        typeof response.response === 'string' ? response.response : JSON.stringify(response.response),
+        botMessageContent,
         false,
         response.retrieved_docs,
         response.model_used
@@ -182,7 +187,7 @@ const ChatInterface = ({ onQuestionSubmit, apiKey }: ChatInterfaceProps) => {
 
       const botResponse: Message = {
         id: botMessageId,
-        text: response.response,
+        text: botMessageContent,
         isUser: false,
         timestamp: new Date(),
         retrievedDocs: response.retrieved_docs,
