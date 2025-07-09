@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import Sidebar from '@/components/Sidebar';
 import ChatInterface from '@/components/ChatInterface';
 
@@ -24,18 +25,23 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      <Sidebar 
-        onReportSubmit={handleReportSubmit} 
-        onApiKeyChange={handleApiKeyChange}
-      />
-      <div className="flex-1 flex flex-col">
-        <ChatInterface 
-          onQuestionSubmit={handleQuestionSubmit}
-          apiKey={apiKey}
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-100 flex w-full">
+        <Sidebar 
+          onReportSubmit={handleReportSubmit} 
+          onApiKeyChange={handleApiKeyChange}
         />
+        <div className="flex-1 flex flex-col">
+          <header className="h-12 flex items-center border-b bg-white">
+            <SidebarTrigger className="ml-4" />
+          </header>
+          <ChatInterface 
+            onQuestionSubmit={handleQuestionSubmit}
+            apiKey={apiKey}
+          />
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
