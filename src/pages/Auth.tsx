@@ -13,6 +13,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('signin');
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const Auth = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setError(null);
+    setSuccess(null);
     setEmail('');
     setPassword('');
   };
@@ -35,6 +37,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error } = await signIn(email, password);
@@ -54,13 +57,14 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error } = await signUp(email, password);
       if (error) {
         setError(error.message);
       } else {
-        setError('Check your email for a confirmation link!');
+        setSuccess('Account created successfully! You are now signed in.');
       }
     } catch (err) {
       setError('An unexpected error occurred');
